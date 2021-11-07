@@ -2,7 +2,7 @@
 DEFAULT_TARGET: all
 
 ROMDIR = roms
-ASMS = nice-catch.asm music.asm
+ASMS = nice-catch.asm music.asm marbles.asm
 SYSTEMS = NTSC PAL60
 ROMS = $(foreach ASM, $(ASMS), $(foreach SYSTEM,$(SYSTEMS),$(ROMDIR)/$(ASM:.asm=)_$(SYSTEM).bin))
 
