@@ -37,15 +37,28 @@ SYSTEM = NTSC
 ; NTSC Colors
 WHITE = $0f
 BLACK = 0
+SKY_BLUE = $A0
+RIVER_BLUE = $A0
+SHORE_SAND = $2C
+SHORE_GRASS = $B3
 #else
 ; PAL Colors
 WHITE = $0E
 BLACK = 0
+SKY_BLUE = $92
+RIVER_BLUE = $92
+SHORE_SAND = $2A
+SHORE_GRASS = $72
 #endif
+
+
+
 
 NUM_PLAYERS     = 4
 HORIZON_HEIGHT  = 30
-POOL_HEIGHT     = 160
+SHORE_0_HEIGHT  = 40
+SHORE_1_HEIGHT  = 40
+RIVER_HEIGHT    = 80
 
 ; ----------------------------------
 ; variables
@@ -153,7 +166,6 @@ resp_target_loop
             lda #WHITE            ;2   5
             sta COLUP0            ;3   8
             sta COLUP1            ;3  11
-            
 
 ;--------------------
 ; Screen start
@@ -161,27 +173,43 @@ resp_target_loop
             ldx #HORIZON_HEIGHT
 horizon_loop
             sta WSYNC
+            lda #SKY_BLUE         ;2   2
+            sta COLUBK            ;3   5
             dex
             bne horizon_loop
 
-            ; line -------
+            ldx #SHORE_0_HEIGHT
+shore_loop_0
             sta WSYNC
-            lda #WHITE
-            sta COLUBK
-            sta WSYNC
-            lda #BLACK
-            sta COLUBK
-            sta HMP0
-            lda #$02
-            sta ENAM0
-            lda #$00
-            sta HMM0             
-            SLEEP 10
-            sta RESM0             
-    
+            lda #SHORE_SAND       ;2   2
+            sta COLUBK            ;3   5
+shore_loop_0_paddle
+            lda INPT0,0
+            bmi shore_loop_0_dec
+            stx position
+shore_loop_0_dec
+            dex
+            bne shore_loop_0
 
-            ldx #POOL_HEIGHT
-pool_loop
+            ; ; line -------
+            ; sta WSYNC
+            ; lda #WHITE
+            ; sta COLUBK
+            ; sta WSYNC
+            ; lda #BLACK
+            ; sta COLUBK
+            ; sta HMP0
+            ; lda #$02
+            ; sta ENAM0
+            ; lda #$00
+            ; sta HMM0             
+            ; SLEEP 10
+            ; sta RESM0             
+
+            lda #RIVER_BLUE           ;2   -
+            sta COLUBK                ;3   -
+            ldx #RIVER_HEIGHT
+river_loop
             sta WSYNC                 ;3   0
             sta HMOVE                 ;3   3 
             txa                       ;2   5
@@ -189,40 +217,44 @@ pool_loop
             ror                       ;2   9
             sta ENAM0                 ;3  12
             dec line_rise             ;5  17
-            bpl pool_loop_line_wait   ;2  19
+            bpl river_loop_line_wait   ;2  19
             lda line_steps            ;3  22
             sta line_rise             ;3  25
             lda line_run              ;3  28
-            jmp pool_loop_line_save   ;3  32
-pool_loop_line_wait
+            jmp river_loop_line_save   ;3  32
+river_loop_line_wait
             lda #$00                  ;2  34
-pool_loop_line_save
+river_loop_line_save
             sta HMM0                  ;3  37
             dec target_rise           ;5  42
-            bpl pool_loop_paddle      ;2  44
+            bpl river_loop_paddle      ;2  44
             lda #$FF                  ;2  46
             sta GRP0                  ;3  52
             lda #$7F                  ;2  46
             sta line_steps            ;3  49
-pool_loop_paddle
+river_loop_paddle
             lda INPT0
-            bmi pool_loop_dec
+            bmi shore_loop_0_dec
             stx position
-pool_loop_dec
+river_loop_dec
             dex                       ;2  54
-            bne pool_loop             ;2  56
+            bne river_loop             ;2  56
 
-            ; line -------
+            ldx #SHORE_1_HEIGHT
+shore_loop_1
             sta WSYNC
-            lda #WHITE
-            sta COLUBK
-            sta WSYNC
-            lda #BLACK
-            sta COLUBK
+            lda #SHORE_GRASS       ;2   2
+            sta COLUBK            ;3   5
+shore_loop_1_paddle
+            lda INPT0
+            bmi shore_loop_1_dec
+            stx position
+shore_loop_1_dec
+            dex
+            bne shore_loop_1
 
 ;--------------------
 ; Overscan start
-
 
             lda #$00
             sta ENAM0
@@ -238,12 +270,24 @@ waitOnOverscan
 
             jmp newFrame
 
+    ORG $FC00
+
+FISH_0
+    byte $0,$0,$0,$0,$40,$40,$e6,$3f,$3f,$1f,$f,$f,$6,$0,$0,$0; 16
+FISH_1
+    byte $0,$0,$0,$0,$0,$6,$8f,$bf,$7f,$bf,$8f,$6,$0,$0,$0,$0; 16
+FISH_2
+    byte $0,$0,$0,$0,$6,$f,$f,$1f,$3f,$3f,$e6,$40,$40,$0,$0,$0; 16
+FISH_3
+    byte $0,$0,$0,$0,$0,$6,$8f,$bf,$7f,$bf,$8f,$6,$0,$0,$0,$0; 16
+
     ORG $FD00
 
 RAD_2_STEPS
     byte $0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$0,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$1,$2,$2,$2,$2,$2,$2,$2,$2,$2,$2,$2,$2,$2,$2,$3,$3,$3,$3,$3,$3,$3,$3,$3,$4,$4,$4,$4,$4,$5,$5,$5,$5,$6,$6,$6,$6,$7,$7,$8,$9,$9,$a,$b,$d,$f,$11,$14,$18,$1e,$28,$3c
 RAD_2_HMOV
     byte $1,$1,$1,$1,$1,$1,$1,$90,$a0,$b0,$c0,$c0,$c0,$d0,$d0,$d0,$d0,$d0,$e0,$e0,$e0,$e0,$e0,$e0,$e0,$e0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0,$f0
+
     ORG $FE00
 
 RAD_2_HPOS
