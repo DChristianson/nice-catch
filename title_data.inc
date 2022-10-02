@@ -1,17 +1,31 @@
 
 
 ;---------------------------------------------------------------------------
-;   bitmap.bmp
+;   title.bmp
 ;---------------------------------------------------------------------------
 
-gfx.bitmap.bmp.parameters:
+gfx.title.bmp.palette.parameters:
+	.byte	$FF			; color 1 (ON)
+	.byte	$00			; color 2 (OFF)
+	.byte	121			; x position
+	.byte	0			; y position
+	.byte	2			; width
+	.byte	58			; height
+	.word	gfx.title.bmp.palette.data	; address for the graphics
+
+gfx.title.bmp.palette.data:
+		.byte	%10101010, %10101010, %10101010, %10101010, %10101010, %10101010, %10101010
+		.byte	%10101010, %10101010, %10101010, %10101010, %10101010, %10101010, %10101010
+		.byte	%10101010
+
+gfx.title.bmp.parameters:
 		.byte	0			; x position
 		.byte	0			; y position
 		.byte	102			; width
 		.byte	58			; height
-		.word	gfx.bitmap.bmp.data
+		.word	gfx.title.bmp.data
 
-gfx.bitmap.bmp.data:
+gfx.title.bmp.data:
 		.byte	%11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111
 		.byte	%11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111
 		.byte	%11111111, %11111111, %11111111, %11111111, %11111111, %11111111, %11111111

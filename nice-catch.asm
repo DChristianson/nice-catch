@@ -1,202 +1,159 @@
+;  Nice Catch!
+;  A game for one to two players
+;   - cruise around the bay and try to catch fish
+;   - when you have a fish onboard bring it back to your home dock
+;   - catch a fish of each type and a clue will appear on one of the islands
+;   - dig at the marked island to get a treasure
+;   - bring the treasure home to win
+;      
+; obstacles
+;   - cyclone will spin your ship around and you lose your catch
+;   - touching the turtle brings bad luck 
+;   - once you enter the treasure hunt phase the cyclone is replaced by a skull
+;
+;
+; secret
+;   - if you fish near the turtle you have an increased chance of catching a fish 
+;   - if you bring the treasure to the opposing dock while the other player is there 
+;      you win with a friendship
+;   - if both players catch all the fish a second clue will appear to mark the ghost island
+;     if both players go to the unmarked island with the treasure they win by lifting the curse
+;
+;  credit to VES homebrew community and example code from
+;   e5frog
+;   Kurt_Woloch
+
+;
+; 1 game phase
+; 12 - 2 players (x, y, dx, dy, fuel, effect timer) 
+;  state
+;    tfffssss
+;     spinning
+;     sinking
+;     driving
+;     docked
+;
+; 5 turtle (x, y, dx, dy, animation)
+; 5 enemy (x, y, dx, dy, animation)
+; 2 clue (x, y)
+;
+	processor f8
+
+;===========================================================================
+; VES Header
+;===========================================================================
+
+	include	"ves.h"	
+
+;===========================================================================
+; Configuration
+;===========================================================================
+
+game_size		=	4			; game size in kilobytes
+
+;===========================================================================
+; Program Entry
+;===========================================================================
+
+;---------------------------------------------------------------------------
+; Cartridge Initalization unsing macros from ves.h
+;---------------------------------------------------------------------------
+
+	org	$800
+
+cartridge.init:
+	; initalize the system
+	CARTRIDGE_START
+	CARTRIDGE_INIT
+
+	
+;---------------------------------------------------------------------------
+; Main Program 
+;---------------------------------------------------------------------------
+
+main:
+
+	
+	; clear to B&W using a BIOS routine
+
+	li	$21
+	lr	3, A
+	pi	clrscrn
 
 
-    processor 6502
-    include "vcs.h"
-    include "macro.h"
-
-NTSC = 0
-PAL60 = 1
-
-    IFNCONST SYSTEM
-SYSTEM = NTSC
-    ENDIF
-
-; ----------------------------------
-; constants
-
-#if SYSTEM = NTSC
-; NTSC Colors
-WHITE = $00f
-BLACK = 0
-#else
-; PAL Colors
-WHITE = $00E
-BLACK = 0
-#endif
-
-HORIZON_HEIGHT  = 94
-POOL_HEIGHT     = 96
-
-; ----------------------------------
-; variables
-
-  SEG.U variables
-
-    ORG $80
-
-frame        ds 1    
-position     ds 1
-line_run     ds 1
-line_steps   ds 1   
-line_rise    ds 1   
+	; set palette 
+	
+	dci	gfx.title.bmp.palette.parameters
+	pi	blitGraphic
 
 
-    SEG
+	; now draw title screen
 
-; ----------------------------------
-; code
+	dci	gfx.title.bmp.parameters
+	pi	multiblitGraphic
 
-  SEG
-    ORG $F000
+    ; wait for hand controller input
 
-Reset
+	pi	wait.4.controller.input
 
-    ; do the clean start macro
-            CLEAN_START
+	; now draw game screen
 
-newFrame
+    dci	gfx.game.bmp.palette.parameters
+	pi	blitGraphic
 
-    ; 3 scanlines of vertical sync signal to follow
+	dci	gfx.game.bmp.parameters
+	pi	multiblitGraphic
 
-            ldx #%00000010
-            stx VSYNC               ; turn ON VSYNC bit 1
+    ; wait for hand controller input
 
-            sta WSYNC               ; wait a scanline
-            sta WSYNC               ; another
-            sta WSYNC               ; another = 3 lines total
+	pi	wait.4.controller.input
 
-            sta VSYNC               ; turn OFF VSYNC bit 1
-
-    ; 37 scanlines of vertical blank to follow
-
-;--------------------
-; VBlank start
-
-            lda #%10000010
-            sta VBLANK
-
-            lda #42    ; vblank timer will land us ~ on scanline 34
-            sta TIM64T
-
-            inc frame ; new frame
-
-player_update
-            lda frame
-            and #$01
-            clc
-            adc position
-            sta position
-            clc
-            lsr
-            lsr
-            lsr
-            sec
-            sbc #16
-            bcc _left
-            ldx #$f0
-            jmp _run
-_left
-            eor #$ff
-            clc
-            adc #$01
-            ldx #$10
-_run
-            stx line_run
-            sta line_steps
-            sta line_rise
-            ldx #$00
-waitOnVBlank            
-            cpx INTIM
-            bmi waitOnVBlank
-            sta WSYNC
-            stx VBLANK
+	jmp	0			; restart
 
 
-            lda #BLACK
-            sta COLUBK
-; SL35
-            sta WSYNC             ;3   0
-            
-; SL36
-            sta WSYNC             ;3   0
-            sta HMOVE             ;3   3
-            lda #WHITE            ;2   5
-            sta COLUP0            ;3   8
-            
-
-;--------------------
-; Screen start
-
-            ldx #HORIZON_HEIGHT
-horizon_loop
-            sta WSYNC
-            dex
-            bne horizon_loop
-
-            ; line -------
-            sta WSYNC
-            sta WSYNC
-            lda #$00
-            sta HMM0             
-            SLEEP 33
-            sta RESM0             
-    
-
-            sta WSYNC
-            lda #$02
-            sta ENAM0
-            ldx #POOL_HEIGHT
-pool_loop
-            sta WSYNC                 ;3   0
-            sta HMOVE                 ;3   3 
-            SLEEP 10
-            dec line_rise             ;5  17
-            bpl pool_loop_line_wait   ;2  19
-            lda line_steps            ;3  22
-            sta line_rise             ;3  25
-            lda line_run              ;3  28
-            jmp pool_loop_line_save   ;3  32
-pool_loop_line_wait
-            lda #$00                  ;2  34
-pool_loop_line_save
-            sta HMM0                  ;3  37
-pool_loop_paddle
-            ; test paddle
-            ;lda INPT0
-            ;bmi pool_loop_dec
-            ;stx position
-pool_loop_dec
-            dex                       ;2  54
-            bne pool_loop             ;2  56
-
-            ; line -------
-            sta WSYNC
-            lda #WHITE
-            sta COLUBK
-            sta WSYNC
-            lda #BLACK
-            sta COLUBK
-
-;--------------------
-; Overscan start
 
 
-            lda #$000
-            sta ENAM0
-            sta COLUBK
+wait.4.controller.input:
+	; see if one of the hand controllers has moved
+	clr
+	outs	0
+	outs	1						; check right hand controller
+	ins	1
+	com
+	bnz	wait.4.controller.input.end
+	; check the other controller
+	clr
+	outs	4						; check left hand controller
+	ins	4
+	com
+	bnz	wait.4.controller.input.end
+	br	wait.4.controller.input
 
-            ldx #30
-waitOnOverscan
-            sta WSYNC
-            dex
-            bne waitOnOverscan
+wait.4.controller.input.end:
 
-            jmp newFrame
-    
-    ORG $FFFA
+	pop
+	
 
-    .word Reset          ; NMI
-    .word Reset          ; RESET
-    .word Reset          ; IRQ
+;---------------------------------------------------------------------------
 
-    END
+	; gfx drawing routines
+
+	include "drawing.inc"
+
+	include "multiblit.inc"
+
+	; graphics data
+
+	include "title_data.inc"
+	include "game_data.inc"
+
+;===========================================================================
+; Signature 
+;===========================================================================
+
+	; signature
+	org [$800 + [game_size * $400] -$10]
+
+signature:
+
+	.byte	"   e5frog 2007  "
